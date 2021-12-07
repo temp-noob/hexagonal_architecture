@@ -1,0 +1,64 @@
+services:
+  psql:
+    image: postgres:latest
+    ports:
+      - 5432:5432
+    volumes:
+      - /docker/host/data/psql:/var/lib/postgresql/data
+      - ./repository_adapters/db-schemas-psql:/docker-entrypoint-initdb.d/
+    environment:
+      - POSTGRES_USER=${PSQL_USERNAME}
+      - POSTGRES_PASSWORD=${PSQL_PWD}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    networks:
+      - app-network
+
+  csql:
+    image: cassandra:latest
+    ports:
+      - 7000:7000
+    volumes:
+      - /docker/host/data/cassandra:/var/lib/cassandra
+      - ./repository_adapters/db-schemas-csql:/docker-entrypoint-initdb.d/
+
+
+  spinner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/hexagonal_arch
+    environment:
+      - PSQL_USERNAME=${PSQL_USERNAME}
+      - PSQL_PWD=${PSQL_PWD}
+      - PSQL_DB=${PSQL_DB} 
+      - PSQL_PORT=${PSQL_PORT}
+      - PSQL_HOST=${PSQL_HOST}
+    command: python spinner.py
+    depends_on:
+      - psql
+    networks:
+      - app-network
+
+  service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/hexagonal_arch
+    environment:
+      - PSQL_USERNAME=${PSQL_USERNAME}
+      - PSQL_PWD=${PSQL_PWD}
+      - PSQL_DB=${PSQL_DB} 
+      - PSQL_PORT=${PSQL_PORT}
+      - PSQL_HOST=${PSQL_HOST}
+    command: python main.py
+    depends_on:
+      - psql
+      - csql
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
