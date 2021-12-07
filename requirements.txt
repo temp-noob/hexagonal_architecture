@@ -1,5 +1,0 @@
-sqlalchemy
-psycopg2
-cassandra-driver
-Flask
-strawberry-graphql[debug-server]
